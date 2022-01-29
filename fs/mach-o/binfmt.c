@@ -84,8 +84,6 @@ static int load32(struct linux_binprm* bprm, struct file* file, struct fat_arch*
 static int load64(struct linux_binprm* bprm, struct file* file, struct fat_arch* farch, bool expect_dylinker, struct load_results* lr);
 static int load(struct linux_binprm* bprm, struct file* file, uint32_t arch, struct load_results* lr);
 static int native_prot(int prot);
-static int setup_stack64(struct linux_binprm* bprm, struct load_results* lr);
-static int setup_stack32(struct linux_binprm* bprm, struct load_results* lr);
 
 // #define PAGE_ALIGN(x) ((x) & ~(PAGE_SIZE-1))
 #define PAGE_ROUNDUP(x) (((((x)-1) / PAGE_SIZE)+1) * PAGE_SIZE)
@@ -109,7 +107,7 @@ static int __init macho_binfmt_init(void)
 
 static void __exit macho_binfmt_exit(void)
 {
-    debug_msg("Mach-O: Exiting, unless you're shutting down, this isn't a good signal!\n");
+    debug_msg("Exiting, unless you're shutting down, this isn't a good signal!\n");
 	unregister_binfmt(&macho_format);
 }
 
@@ -178,25 +176,6 @@ int macho_load(struct linux_binprm* bprm)
 		return err;
 	}
 
-	// Setup the stack
-	if (lr._32on64)
-		setup_stack32(bprm, &lr);
-	else
-		setup_stack64(bprm, &lr);
-
-	// Set DYLD_INFO
-	//darling_task_set_dyld_info(lr.dyld_all_image_location, lr.dyld_all_image_size);
-
-	// debug_msg("Entry point: %lx, stack: %lx, mh: %lx\n", (void*) lr.entry_point, (void*) bprm->p, (void*) lr.mh);
-
-	//unsigned int* pp = (unsigned int*)bprm->p;
-	//int i;
-	//for (i = 0; i < 30; i++)
-	//{
-	//	debug_msg("sp @%p: 0x%x\n", pp, *pp);
-	//	pp++;
-	//}
-	
 	start_thread(regs, lr.entry_point, bprm->p);
 out:
 	if (lr.root_path)
@@ -413,12 +392,10 @@ int load_fat(struct linux_binprm* bprm,
 
 #define GEN_64BIT
 #include "binfmt_loader.c"
-#include "binfmt_stack.c"
 #undef GEN_64BIT
 
 #define GEN_32BIT
 #include "binfmt_loader.c"
-#include "binfmt_stack.c"
 #undef GEN_32BIT
 
 int native_prot(int prot)
