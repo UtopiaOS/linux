@@ -135,6 +135,17 @@ config BINFMT_SHARED_FLAT
 	help
 	  Support FLAT shared libraries
 
+config BINFMT_MACHO
+	bool "Enable Mach-O binary format support"
+	help
+       Mach-O, short for Mach object file format, is a file format for executables, object code, 
+	   shared libraries, dynamically-loaded code, and core dumps. It was developed to replace the a.out format.
+
+	   While the default format for Linux is ELF (Executable and Linkable Format), some Linux userland implementions
+	   might asume Mach-O support on the kernel, such as Utopia.
+
+	   If unsure about if this option should be turned on or not, is recommended to leave it up to your default configuration.
+
 config HAVE_AOUT
        def_bool n
 

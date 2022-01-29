@@ -71,7 +71,7 @@
 
 //#include <i386/_types.h> <- How this is needed when using the Linux kernel is left as an exercise to the reader
 #include <mach/i386/vm_param.h>
-#include <stdint.h>
+#include <linux/types.h>
 
 /*
  * natural_t and integer_t are Mach's legacy types for machine-

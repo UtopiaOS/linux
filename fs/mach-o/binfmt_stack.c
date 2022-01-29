@@ -56,10 +56,10 @@ int FUNCTION_NAME(struct linux_binprm* bprm, struct load_results* lr)
 		goto out;
 	}
 
-	task_t task = darling_task_get_current();
+	/*task_t task = darling_task_get_current();
 
-	if (task)
-		vchroot_path = task_copy_vchroot_path(task);
+	//if (task)
+	//	vchroot_path = task_copy_vchroot_path(task);
 
 	if (vchroot_path != NULL)
 	{
@@ -79,6 +79,7 @@ int FUNCTION_NAME(struct linux_binprm* bprm, struct load_results* lr)
 		}
 		executable_path = executable_buf;
 	}
+    */
 
 	// printk(KERN_NOTICE "Stack top: %p\n", bprm->p);
 	exepath_len = strlen(executable_path);

@@ -63,7 +63,7 @@
 
 #ifndef __ASSEMBLER__
 
-#include <stdint.h>
+#include <linux/types.h>
 #include <mach/machine/vm_types.h>
 #include <mach/boolean.h>
 

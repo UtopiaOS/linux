@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include <duct/compiler/clang/asm-inline.h>
+//#include <duct/compiler/clang/asm-inline.h>
 #include <linux/string.h>
 #include <linux/vmalloc.h>
 #include <linux/cpumask.h>
@@ -27,7 +27,7 @@
 #include "commpage.h"
 
 // Include commpage definitions
-#include "../osfmk/i386/cpu_capabilities.h"
+//#include "../osfmk/i386/cpu_capabilities.h"
 
 static const char* SIGNATURE32 = "commpage 32-bit";
 static const char* SIGNATURE64 = "commpage 64-bit";

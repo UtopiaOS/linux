@@ -1,7 +1,7 @@
 
 #ifndef _COMMPAGE_H
 #define _COMMPAGE_H
-#include <stdint.h>
+#include <linux/types.h>
 
 void* commpage_setup(bool _64bit);
 void commpage_free(void* mem);

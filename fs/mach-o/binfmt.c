@@ -32,6 +32,7 @@
 
 #include <linux/mm.h>
 #include <linux/mman.h>
+#include <linux/types.h>
 #include <linux/slab.h>
 #include <linux/fs.h>
 #include <linux/file.h>
@@ -47,20 +48,14 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,9)
 #include <linux/sched/task_stack.h>
 #endif
-#include "debug_print.h"
-#include "task_registry.h"
-#include "commpage.h"
-
-// To get LINUX_SIGRTMIN
-#include <rtsig.h>
+//#include "commpage.h"
+#include "debug.h"
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,11,0)
 #	define check_64bit_mode(regs) !test_thread_flag(TIF_IA32)
 #else
 #	define check_64bit_mode(regs) any_64bit_mode(regs)
 #endif
-
-extern char* task_copy_vchroot_path(task_t t);
 
 struct load_results
 {
@@ -79,11 +74,11 @@ struct load_results
 	char* root_path;
 };
 
-extern struct file* xnu_task_setup(void);
-extern int commpage_install(struct file* xnu_task);
+//extern struct file* xnu_task_setup(void);
+//extern int commpage_install(struct file* xnu_task);
 
 static int macho_load(struct linux_binprm* bprm);
-static int macho_coredump(struct coredump_params* cprm);
+//static int macho_coredump(struct coredump_params* cprm);
 static int test_load(struct linux_binprm* bprm);
 static int test_load_fat(struct linux_binprm* bprm);
 static int load_fat(struct linux_binprm* bprm, struct file* file, uint32_t arch, struct load_results* lr);
@@ -104,19 +99,22 @@ struct linux_binfmt macho_format = {
 	.module = THIS_MODULE,
 	.load_binary = macho_load,
 	.load_shlib = NULL,
-#ifdef CONFIG_COREDUMP
+#ifdef CONFIG_COREDUMP_FAKE
 	.core_dump = macho_coredump,
 #endif
 	.min_coredump = PAGE_SIZE
 };
 
-void macho_binfmt_init(void)
+static int __init macho_binfmt_init(void)
 {
+    printk(KERN_INFO "Mach-O file format support loaded! At your order chief!.\n");
 	register_binfmt(&macho_format);
+    return 0;
 }
 
-void macho_binfmt_exit(void)
+static void __exit macho_binfmt_exit(void)
 {
+    printk(KERN_INFO "Mach-O: Exiting, unless you're shutting down, this isn't a good signal!\n");
 	unregister_binfmt(&macho_format);
 }
 
@@ -125,7 +123,7 @@ int macho_load(struct linux_binprm* bprm)
 	int err;
 	struct load_results lr;
 	struct pt_regs* regs = current_pt_regs();
-	struct file* xnu_task;
+	//struct file* xnu_task;
 
 	// Zero this structure early
 	memset(&lr, 0, sizeof(lr));
@@ -136,17 +134,17 @@ int macho_load(struct linux_binprm* bprm)
 		goto out;
 
 	// Setup a new XNU task
-	xnu_task = xnu_task_setup();
-	if (IS_ERR(xnu_task))
-	{
-		err = PTR_ERR(xnu_task);
-		goto out;
-	}
+	//xnu_task = xnu_task_setup();
+	//if (IS_ERR(xnu_task))
+	//{
+	//	err = PTR_ERR(xnu_task);
+	//	goto out;
+	//}
 
 	// Block SIGNAL_SIGEXC_TOGGLE and SIGNAL_SIGEXC_THUPDATE.
 	// See sigexc.c in libsystem_kernel.
-	sigaddset(&current->blocked, LINUX_SIGRTMIN);
-	sigaddset(&current->blocked, LINUX_SIGRTMIN+1);
+	sigaddset(&current->blocked, SIGRTMIN);
+	sigaddset(&current->blocked, SIGRTMIN+1);
 	
 	// Remove the running executable
 	// This is the point of no return.
@@ -162,7 +160,7 @@ int macho_load(struct linux_binprm* bprm)
 
 	if (err)
 	{
-		fput(xnu_task);
+		//fput(xnu_task);
 		debug_msg("Binary failed to load: %d\n", err);
 		goto out;
 	}
@@ -175,14 +173,14 @@ int macho_load(struct linux_binprm* bprm)
 	// TODO: fill in start_code, end_code, start_data, end_data
 
 	// Map commpage
-	err = commpage_install(xnu_task);
+	//err = commpage_install(xnu_task);
 
 	lr.kernfd = get_unused_fd_flags(O_RDWR | O_CLOEXEC);
 	
-	if (lr.kernfd >= 0)
-		fd_install(lr.kernfd, xnu_task);
-	else
-		err = lr.kernfd;
+	//if (lr.kernfd >= 0)
+		//fd_install(lr.kernfd, xnu_task);
+	//else
+	//	err = lr.kernfd;
 
 	// The ref to the task is now held by the commpage mapping
 	// fput(xnu_task);
@@ -201,7 +199,7 @@ int macho_load(struct linux_binprm* bprm)
 		setup_stack64(bprm, &lr);
 
 	// Set DYLD_INFO
-	darling_task_set_dyld_info(lr.dyld_all_image_location, lr.dyld_all_image_size);
+	//darling_task_set_dyld_info(lr.dyld_all_image_location, lr.dyld_all_image_size);
 
 	// debug_msg("Entry point: %lx, stack: %lx, mh: %lx\n", (void*) lr.entry_point, (void*) bprm->p, (void*) lr.mh);
 
@@ -228,7 +226,7 @@ int setup_space(struct linux_binprm* bprm, struct load_results* lr)
 	// Explanation:
 	// Using STACK_TOP would cause the stack to be placed just above the commpage
 	// and would collide with it eventually.
-	unsigned long stackAddr = commpage_address(check_64bit_mode(current_pt_regs()));
+	//unsigned long stackAddr = commpage_address(check_64bit_mode(current_pt_regs()));
 
 	setup_new_exec(bprm);
 	#if LINUX_VERSION_CODE < KERNEL_VERSION(5,8,0)
@@ -237,14 +235,14 @@ int setup_space(struct linux_binprm* bprm, struct load_results* lr)
 
 	// TODO: Mach-O supports executable stacks
 
-	err = setup_arg_pages(bprm, stackAddr, EXSTACK_DISABLE_X);
-	if (err != 0)
+	//err = setup_arg_pages(bprm, stackAddr, EXSTACK_DISABLE_X);
+	//if (err != 0)
 		return err;
 
 	// If vchroot is active in the current process, respect it
-	vchroot_detect(lr);
+	//vchroot_detect(lr);
 	// Parse binprefs out of env, evaluate DYLD_ROOT_PATH
-	process_special_env(bprm, lr);
+	//process_special_env(bprm, lr);
 
 	return 0;
 }
@@ -456,7 +454,7 @@ int load_fat(struct linux_binprm* bprm,
 
 #define GEN_64BIT
 #include "binfmt_loader.c"
-#include "binfmt__stack.c"
+#include "binfmt_stack.c"
 #undef GEN_64BIT
 
 #define GEN_32BIT
@@ -478,14 +476,14 @@ int native_prot(int prot)
 	return protOut;
 }
 
-void vchroot_detect(struct load_results* lr)
+/*void vchroot_detect(struct load_results* lr)
 {
 	// Find out if the current process has an associated XNU task_t
 	task_t task = darling_task_get_current();
 
 	if (task)
 		lr->root_path = task_copy_vchroot_path(task);
-}
+}*/
 
 // Given that there's no proper way of passing special parameters to the binary loader
 // via execve(), we must do this via env variables
@@ -541,45 +539,11 @@ void process_special_env(struct linux_binprm* bprm, struct load_results* lr)
 	kfree(env_value);
 }
 
-// Copied from arch/x86/kernel/process_64.c
-// Why on earth isn't this exported?!
-#ifdef __x86_64__
-static void
-start_thread_common(struct pt_regs *regs, unsigned long new_ip,
-		    unsigned long new_sp,
-		    unsigned int _cs, unsigned int _ss, unsigned int _ds)
-{
-	loadsegment(fs, 0);
-	loadsegment(es, _ds);
-	loadsegment(ds, _ds);
-	load_gs_index(0);
-	regs->ip		= new_ip;
-	regs->sp		= new_sp;
-	regs->cs		= _cs;
-	regs->ss		= _ss;
-	regs->flags		= X86_EFLAGS_IF;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,6,0)
-	force_iret();
-#endif
-}
-
-void
-start_thread(struct pt_regs *regs, unsigned long new_ip, unsigned long new_sp)
-{
-	bool ia32 = !check_64bit_mode(regs);
-	start_thread_common(regs, new_ip, new_sp,
-			ia32 ? __USER32_CS : __USER_CS,
-			__USER_DS,
-			ia32 ? __USER_DS : 0);
-}
-#endif
-
-
 //////////////////////////////////////////////////////////////////////////////
 // CORE DUMPING SUPPORT                                                     //
 //////////////////////////////////////////////////////////////////////////////
 
-#ifdef CONFIG_COREDUMP
+#ifdef CONFIG_COREDUMP_FAKE
 
 // Copied and adapted from mm/gup.c from get_dump_page() (not exported for LKMs)
 static
@@ -954,3 +918,5 @@ fail:
 #else
 #warning Core dumping not allowed by kernel config
 #endif
+
+core_initcall(macho_binfmt_init);

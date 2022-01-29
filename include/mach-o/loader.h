@@ -26,7 +26,7 @@
 /*
  * This file describes the format of mach object files.
  */
-#include <stdint.h>
+#include <linux/types.h>
 
 /*
  * <mach/machine.h> is needed here for the cpu_type_t and cpu_subtype_t types

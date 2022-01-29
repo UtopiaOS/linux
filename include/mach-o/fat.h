@@ -41,7 +41,7 @@
  * <mach/machine.h> is needed here for the cpu_type_t and cpu_subtype_t types
  * and contains the constants for the possible values of these types.
  */
-#include <stdint.h>
+#include <linux/types.h>
 #include <mach/machine.h>
 // #include <architecture/byte_order.h> // Darwin specific, we couldn't care less
 
