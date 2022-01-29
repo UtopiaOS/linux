@@ -56,31 +56,6 @@ int FUNCTION_NAME(struct linux_binprm* bprm, struct load_results* lr)
 		goto out;
 	}
 
-	/*task_t task = darling_task_get_current();
-
-	//if (task)
-	//	vchroot_path = task_copy_vchroot_path(task);
-
-	if (vchroot_path != NULL)
-	{
-		const size_t vchroot_len = strlen(vchroot_path);
-		exepath_len = strlen(executable_path);
-
-		if (strncmp(executable_path, vchroot_path, vchroot_len) == 0)
-		{
-			memmove(executable_buf, executable_path + vchroot_len, exepath_len - vchroot_len + 1);
-		}
-		else
-		{
-			static const char SYSTEM_ROOT[] = "/Volumes/SystemRoot";
-
-			memcpy(executable_buf, SYSTEM_ROOT, sizeof(SYSTEM_ROOT) - 1);
-			memmove(executable_buf + sizeof(SYSTEM_ROOT) - 1, executable_path, exepath_len + 1);
-		}
-		executable_path = executable_buf;
-	}
-    */
-
 	// printk(KERN_NOTICE "Stack top: %p\n", bprm->p);
 	exepath_len = strlen(executable_path);
 	sp = (user_long_t*) (bprm->p & ~(sizeof(user_long_t)-1));

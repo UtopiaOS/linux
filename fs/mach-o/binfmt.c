@@ -50,7 +50,6 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,9)
 #include <linux/sched/task_stack.h>
 #endif
-//#include "commpage.h"
 #include "debug.h"
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,11,0)
@@ -75,9 +74,6 @@ struct load_results
 	uint32_t bprefs[4];
 	char* root_path;
 };
-
-//extern struct file* xnu_task_setup(void);
-//extern int commpage_install(struct file* xnu_task);
 
 static int macho_load(struct linux_binprm* bprm);
 //static int macho_coredump(struct coredump_params* cprm);
