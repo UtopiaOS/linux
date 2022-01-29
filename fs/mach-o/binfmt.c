@@ -89,8 +89,6 @@ static int native_prot(int prot);
 static int setup_stack64(struct linux_binprm* bprm, struct load_results* lr);
 static int setup_stack32(struct linux_binprm* bprm, struct load_results* lr);
 static int setup_space(struct linux_binprm* bprm, struct load_results* lr);
-static void process_special_env(struct linux_binprm* bprm, struct load_results* lr);
-static void vchroot_detect(struct load_results* lr);
 
 // #define PAGE_ALIGN(x) ((x) & ~(PAGE_SIZE-1))
 #define PAGE_ROUNDUP(x) (((((x)-1) / PAGE_SIZE)+1) * PAGE_SIZE)
