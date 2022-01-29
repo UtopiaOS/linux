@@ -30,6 +30,8 @@
 #	include <linux/sched/task_stack.h>
 #endif
 
+#include <linux/namei.h>
+#include <linux/module.h>
 #include <linux/mm.h>
 #include <linux/mman.h>
 #include <linux/types.h>
@@ -131,14 +133,6 @@ int macho_load(struct linux_binprm* bprm)
 	if (err)
 		goto out;
 
-	// Setup a new XNU task
-	//xnu_task = xnu_task_setup();
-	//if (IS_ERR(xnu_task))
-	//{
-	//	err = PTR_ERR(xnu_task);
-	//	goto out;
-	//}
-
 	// Block SIGNAL_SIGEXC_TOGGLE and SIGNAL_SIGEXC_THUPDATE.
 	// See sigexc.c in libsystem_kernel.
 	sigaddset(&current->blocked, SIGRTMIN);
@@ -158,7 +152,6 @@ int macho_load(struct linux_binprm* bprm)
 
 	if (err)
 	{
-		//fput(xnu_task);
 		debug_msg("Binary failed to load: %d\n", err);
 		goto out;
 	}
@@ -282,7 +275,7 @@ int load(struct linux_binprm* bprm,
 int test_load(struct linux_binprm* bprm)
 {
 	uint32_t magic = *(uint32_t*)bprm->buf;
-    uint32_t cputype;
+    	uint32_t cputype;
 
 	// TODO: This function should check if the dynamic loader is present and valid
 
@@ -473,69 +466,6 @@ int native_prot(int prot)
 		protOut |= PROT_EXEC;
 
 	return protOut;
-}
-
-/*void vchroot_detect(struct load_results* lr)
-{
-	// Find out if the current process has an associated XNU task_t
-	task_t task = darling_task_get_current();
-
-	if (task)
-		lr->root_path = task_copy_vchroot_path(task);
-}*/
-
-// Given that there's no proper way of passing special parameters to the binary loader
-// via execve(), we must do this via env variables
-void process_special_env(struct linux_binprm* bprm, struct load_results* lr)
-{
-	unsigned long p = current->mm->arg_start;
-
-	// Get past argv strings
-	int argc = bprm->argc;
-	while (argc--)
-	{
-		size_t len = strnlen_user((void __user*) p, MAX_ARG_STRLEN);
-		if (!len || len > MAX_ARG_STRLEN)
-			return;
-
-		p += len;
-	}
-
-	int envc = bprm->envc;
-	char* env_value = (char*) kmalloc(MAX_ARG_STRLEN, GFP_KERNEL);
-
-	while (envc--)
-	{
-		size_t len = strnlen_user((void __user*) p, MAX_ARG_STRLEN);
-		if (!len || len > MAX_ARG_STRLEN)
-			break;
-
-		if (copy_from_user(env_value, (void __user*) p, len) == 0)
-		{
-			printk(KERN_NOTICE "env var: %s\n", env_value);
-
-			if (strncmp(env_value, "__mldr_bprefs=", 14) == 0)
-			{
-				// NOTE: This env var will not be passed to userland, see setup_stack32/64
-				sscanf(env_value+14, "%x,%x,%x,%x", &lr->bprefs[0], &lr->bprefs[1], &lr->bprefs[2], &lr->bprefs[3]);
-			}
-			else if (strncmp(env_value, "DYLD_ROOT_PATH=", 15) == 0)
-			{
-				if (lr->root_path == NULL)
-				{
-					// len already includes NUL
-					lr->root_path = (char*) kmalloc(len - 15, GFP_KERNEL);
-					if (lr->root_path)
-						strcpy(lr->root_path, env_value + 15);
-				}
-			}
-		}
-		else
-			printk(KERN_NOTICE "Cannot get env var value\n");
-		p += len;
-	}
-
-	kfree(env_value);
 }
 
 //////////////////////////////////////////////////////////////////////////////
