@@ -17,6 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+// TODO: Decide if this is useless or not, since we don't really have the commpage feature!
 #if defined(GEN_64BIT)
 #define FUNCTION_NAME setup_stack64
 #define user_long_t unsigned long

@@ -86,7 +86,6 @@ static int load(struct linux_binprm* bprm, struct file* file, uint32_t arch, str
 static int native_prot(int prot);
 static int setup_stack64(struct linux_binprm* bprm, struct load_results* lr);
 static int setup_stack32(struct linux_binprm* bprm, struct load_results* lr);
-static int setup_space(struct linux_binprm* bprm, struct load_results* lr);
 
 // #define PAGE_ALIGN(x) ((x) & ~(PAGE_SIZE-1))
 #define PAGE_ROUNDUP(x) (((((x)-1) / PAGE_SIZE)+1) * PAGE_SIZE)
@@ -204,34 +203,6 @@ out:
 		kfree(lr.root_path);
 
 	return err;
-}
-
-int setup_space(struct linux_binprm* bprm, struct load_results* lr)
-{
-	int err;
-
-	// Explanation:
-	// Using STACK_TOP would cause the stack to be placed just above the commpage
-	// and would collide with it eventually.
-	//unsigned long stackAddr = commpage_address(check_64bit_mode(current_pt_regs()));
-
-	setup_new_exec(bprm);
-	#if LINUX_VERSION_CODE < KERNEL_VERSION(5,8,0)
-	install_exec_creds(bprm);
-	#endif
-
-	// TODO: Mach-O supports executable stacks
-
-	//err = setup_arg_pages(bprm, stackAddr, EXSTACK_DISABLE_X);
-	//if (err != 0)
-		return err;
-
-	// If vchroot is active in the current process, respect it
-	//vchroot_detect(lr);
-	// Parse binprefs out of env, evaluate DYLD_ROOT_PATH
-	//process_special_env(bprm, lr);
-
-	return 0;
 }
 
 static const char EXECUTABLE_PATH[] = "executable_path=";

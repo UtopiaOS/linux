@@ -72,8 +72,12 @@ int FUNCTION_NAME(struct linux_binprm* bprm,
 #ifdef GEN_32BIT
 		lr->_32on64 = true;
 		set_personality_ia32(false);
-#endif
-		setup_space(bprm, lr);
+#endif		
+		// TODO: When we acquired the original source code from Darling
+		// it explained that Mach-O supports executable stacks.
+		// The original function, named setup_space, made use of commpage 
+		// thing we don't have!
+		setup_new_exec(bprm);
 	}
 
 	fat_offset = pos = farch ? farch->offset : 0;
@@ -168,7 +172,7 @@ no_slide:
 			case SEGMENT_COMMAND:
 			{
 				struct SEGMENT_STRUCT* seg = (struct SEGMENT_STRUCT*) lc;
-				void* rv;
+				//void* rv; <- What was the use of this?
 
 				// This logic is wrong and made up. But it's the only combination where
 				// some apps stop crashing (TBD why) and LLDB recognized the memory layout
