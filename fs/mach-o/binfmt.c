@@ -284,6 +284,7 @@ int load(struct linux_binprm* bprm,
 int test_load(struct linux_binprm* bprm)
 {
 	uint32_t magic = *(uint32_t*)bprm->buf;
+    uint32_t cputype;
 
 	// TODO: This function should check if the dynamic loader is present and valid
 
@@ -299,7 +300,7 @@ int test_load(struct linux_binprm* bprm)
 			return -ENOEXEC;
 
 #ifdef __x86_64__
-		uint32_t cputype = mh->cputype;
+		cputype = mh->cputype;
 		// if (magic == MH_CIGAM_64)
 		// 	be32_to_cpus(&cputype);
 
@@ -336,6 +337,7 @@ int test_load_fat(struct linux_binprm* bprm)
 	const bool swap = fhdr->magic == FAT_CIGAM;
 	u32 narch = fhdr->nfat_arch;
 	bool found_usable = false;
+    uint32_t i;
 
 	if (swap)
 		be32_to_cpus(&narch);
@@ -343,7 +345,6 @@ int test_load_fat(struct linux_binprm* bprm)
 	if (sizeof(*fhdr) + narch * sizeof(struct fat_arch) > sizeof(bprm->buf))
 		return -ENOEXEC;
 
-	uint32_t i;
 	for (i = 0; i < narch; i++)
 	{
 		struct fat_arch* arch;
@@ -379,6 +380,7 @@ int load_fat(struct linux_binprm* bprm,
 	const bool swap = fhdr->magic == FAT_CIGAM;
 	struct fat_arch* best_arch = NULL;
 	int bpref_index = -1;
+    uint32_t i;
 
 	// Here we assume that our current endianess is LE
 	// which is actually true for all of Darling's supported archs.
@@ -390,7 +392,6 @@ int load_fat(struct linux_binprm* bprm,
 	if (sizeof(*fhdr) + fhdr->nfat_arch * sizeof(struct fat_arch) > sizeof(bprm->buf))
 		return -ENOEXEC;
 
-	uint32_t i;
 	for (i = 0; i < fhdr->nfat_arch; i++)
 	{
 		struct fat_arch* arch;
@@ -918,5 +919,6 @@ fail:
 #else
 #warning Core dumping not allowed by kernel config
 #endif
+
 
 core_initcall(macho_binfmt_init);
