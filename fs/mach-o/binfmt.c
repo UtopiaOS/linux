@@ -105,14 +105,14 @@ struct linux_binfmt macho_format = {
 
 static int __init macho_binfmt_init(void)
 {
-    printk(KERN_INFO "Mach-O file format support loaded! At your order chief!.\n");
+    debug_msg("File format support loaded! At your order chief!.\n");
 	register_binfmt(&macho_format);
     return 0;
 }
 
 static void __exit macho_binfmt_exit(void)
 {
-    printk(KERN_INFO "Mach-O: Exiting, unless you're shutting down, this isn't a good signal!\n");
+    debug_msg("Mach-O: Exiting, unless you're shutting down, this isn't a good signal!\n");
 	unregister_binfmt(&macho_format);
 }
 
@@ -920,3 +920,4 @@ fail:
 
 
 core_initcall(macho_binfmt_init);
+module_exit(macho_binfmt_exit);
