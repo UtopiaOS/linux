@@ -17,7 +17,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-#include "binfmt.h"
 #undef PAGE_MASK
 #undef PAGE_SHIFT
 #undef PAGE_SIZE
@@ -30,6 +29,7 @@
 #	include <linux/sched/task_stack.h>
 #endif
 
+#include <linux/binfmts.h>
 #include <linux/namei.h>
 #include <linux/module.h>
 #include <linux/mm.h>
@@ -84,11 +84,12 @@ static int load32(struct linux_binprm* bprm, struct file* file, struct fat_arch*
 static int load64(struct linux_binprm* bprm, struct file* file, struct fat_arch* farch, bool expect_dylinker, struct load_results* lr);
 static int load(struct linux_binprm* bprm, struct file* file, uint32_t arch, struct load_results* lr);
 static int native_prot(int prot);
+static int setup_stack64(struct linux_binprm* bprm, struct load_results* lr);
 
 // #define PAGE_ALIGN(x) ((x) & ~(PAGE_SIZE-1))
 #define PAGE_ROUNDUP(x) (((((x)-1) / PAGE_SIZE)+1) * PAGE_SIZE)
 
-struct linux_binfmt macho_format = {
+static struct linux_binfmt macho_format = {
 	.module = THIS_MODULE,
 	.load_binary = macho_load,
 	.load_shlib = NULL,
@@ -176,6 +177,14 @@ int macho_load(struct linux_binprm* bprm)
 		return err;
 	}
 
+	//err = setup_stack64(bprm, &lr);
+	//if (err != 0)
+	//{
+	//	debug_msg("What the fuck?");
+	//	return err;
+	//}
+	
+	finalize_exec(bprm);
 	start_thread(regs, lr.entry_point, bprm->p);
 out:
 	if (lr.root_path)
@@ -392,10 +401,12 @@ int load_fat(struct linux_binprm* bprm,
 
 #define GEN_64BIT
 #include "binfmt_loader.c"
+#include "binfmt_stack.c"
 #undef GEN_64BIT
 
 #define GEN_32BIT
 #include "binfmt_loader.c"
+#include "binfmt_stack.c"
 #undef GEN_32BIT
 
 int native_prot(int prot)
@@ -795,3 +806,4 @@ fail:
 
 core_initcall(macho_binfmt_init);
 module_exit(macho_binfmt_exit);
+MODULE_LICENSE("GPL");
