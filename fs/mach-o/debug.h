@@ -3,7 +3,7 @@
 
 #include <linux/kernel.h>
 
-#define debug_msg(x, args...) \
+#define mch_print_debug(x, args...) \
     printk(KERN_DEBUG "binfmt_mach-o: " x, ##args)
 
 #endif

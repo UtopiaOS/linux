@@ -95,6 +95,7 @@ int FUNCTION_NAME(struct linux_binprm* bprm,
 	cmds = (uint8_t*) kmalloc(header.sizeofcmds, GFP_KERNEL);
 	if (!cmds)
 		return -ENOMEM;
+		
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
 	if (kernel_read(file, cmds, header.sizeofcmds, &pos) != header.sizeofcmds)
@@ -123,8 +124,8 @@ int FUNCTION_NAME(struct linux_binprm* bprm,
 				if (base == -1)
 				{
 					base = seg->vmaddr;
-					//if (base != 0 && header.filetype == MH_DYLINKER)
-					//	goto no_slide;
+					if (base != 0 && header.filetype == MH_DYLINKER)
+						goto no_slide;
 				}
 				mmapSize = seg->vmaddr + seg->vmsize - base;
 			}

@@ -17,6 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+#include "binfmt.h"
 #undef PAGE_MASK
 #undef PAGE_SHIFT
 #undef PAGE_SIZE
@@ -29,7 +30,6 @@
 #	include <linux/sched/task_stack.h>
 #endif
 
-#include <linux/binfmts.h>
 #include <linux/namei.h>
 #include <linux/module.h>
 #include <linux/mm.h>
@@ -47,6 +47,7 @@
 #include <linux/coredump.h>
 #include <linux/highmem.h>
 #include <linux/mount.h>
+#include <linux/random.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,9)
 #include <linux/sched/task_stack.h>
 #endif
@@ -89,7 +90,7 @@ static int setup_stack64(struct linux_binprm* bprm, struct load_results* lr);
 // #define PAGE_ALIGN(x) ((x) & ~(PAGE_SIZE-1))
 #define PAGE_ROUNDUP(x) (((((x)-1) / PAGE_SIZE)+1) * PAGE_SIZE)
 
-static struct linux_binfmt macho_format = {
+struct linux_binfmt macho_format = {
 	.module = THIS_MODULE,
 	.load_binary = macho_load,
 	.load_shlib = NULL,
@@ -183,8 +184,11 @@ int macho_load(struct linux_binprm* bprm)
 	//	debug_msg("What the fuck?");
 	//	return err;
 	//}
+
+	// setup the stack
+	setup_stack64(bprm, &lr);
 	
-	finalize_exec(bprm);
+	//finalize_exec(bprm);
 	start_thread(regs, lr.entry_point, bprm->p);
 out:
 	if (lr.root_path)
@@ -422,6 +426,30 @@ int native_prot(int prot)
 
 	return protOut;
 }
+
+#ifdef __xdddd86_64__
+static void
+start_thread_common(struct pt_regs *regs, unsigned long new_ip,
+	unsigned long new_sp, unsigned int _cs, unsigned _ss, unsigned int _ds)
+{
+	loadsegment(fs, 0);
+	loadsegment(es, _ds);
+	loadsegment(ds, _ds);
+	load_gs_index(0);
+	regs->ip		= new_ip;
+	regs->sp		= new_sp;
+	regs->cs		= _cs;
+	regs->ss		= _ss;
+	regs->flags		= X86_EFLAGS_IF;
+}
+
+void start_thread(struct pt_regs *regs, unsigned long new_ip, unsigned long new_sp)
+{
+	bool ia32 = !check_64bit_mode(regs);
+	start_thread_common(regs, new_ip, new_sp, ia32 ? __USER32_CS : __USER_CS, __USER_DS, ia32 ? __USER_DS: 0);
+}
+
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // CORE DUMPING SUPPORT                                                     //

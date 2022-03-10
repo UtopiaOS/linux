@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "loader.h": "c",
+        "mman.h": "c",
+        "task_stack.h": "c",
+        "mm.h": "c"
+    }
+}
