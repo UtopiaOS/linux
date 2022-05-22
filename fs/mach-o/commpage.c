@@ -29,6 +29,9 @@
 // Include commpage definitions
 //#include "../osfmk/i386/cpu_capabilities.h"
 
+#define _COMM_PAGE64_BASE_ADDRESS       ( 0x00007fffffe00000ULL )
+#define _COMM_PAGE32_BASE_ADDRESS               (0xFFFF4000)
+
 static const char* SIGNATURE32 = "commpage 32-bit";
 static const char* SIGNATURE64 = "commpage 64-bit";
 

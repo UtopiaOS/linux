@@ -73,12 +73,15 @@ int FUNCTION_NAME(struct linux_binprm* bprm,
 		lr->_32on64 = true;
 		set_personality_ia32(false);
 #endif		
+	mch_print_debug("Here!");
 		// TODO: When we acquired the original source code from Darling
 		// it explained that Mach-O supports executable stacks.
 		// The original function, named setup_space, made use of commpage 
 		// thing we don't have!
-		setup_new_exec(bprm);
+		setup_space(bprm, lr);
 	}
+
+	setup_space(bprm, lr);
 
 	fat_offset = pos = farch ? farch->offset : 0;
 
@@ -103,7 +106,7 @@ int FUNCTION_NAME(struct linux_binprm* bprm,
 	if (kernel_read(file, fat_offset + sizeof(header), cmds, header.sizeofcmds) != header.sizeofcmds)
 #endif
 	{
-		debug_msg("Binary failed to load %d bytes\n", header.sizeofcmds);
+		mch_print_debug("Binary failed to load %d bytes\n", header.sizeofcmds);
 		kfree(cmds);
 		return -EIO;
 	}
@@ -163,7 +166,7 @@ no_slide:
 		lc = (struct load_command*) &cmds[p];
 		if (lc->cmdsize > PAGE_SIZE)
 		{
-			debug_msg("Broken Mach-O file, cmdsize = %d\n", lc->cmdsize);
+			mch_print_debug("Broken Mach-O file, cmdsize = %d\n", lc->cmdsize);
 			err = -ENOEXEC;
 			goto out;
 		}
@@ -299,11 +302,11 @@ no_slide:
 					if (IS_ERR(dylinker))
 					{
 						err = PTR_ERR(dylinker);
-						debug_msg("Failed to load dynamic linker (%s) for executable, error %d\n", path, err);
+						mch_print_debug("Failed to load dynamic linker (%s) for executable, error %d\n", path, err);
 						dylinker = NULL;
 					}
 					else
-						debug_msg("Loaded chrooted dyld at %s\n", path);
+						mch_print_debug("Loaded chrooted dyld at %s\n", path);
 					kfree(path);
 				}
 
@@ -320,7 +323,7 @@ no_slide:
 					if (IS_ERR(dylinker))
 					{
 						err = PTR_ERR(dylinker);
-						debug_msg("Failed to load dynamic linker (%s) for executable, error %d\n", path, err);
+						mch_print_debug("Failed to load dynamic linker (%s) for executable, error %d\n", path, err);
 						kfree(path);
 						goto out;
 					}

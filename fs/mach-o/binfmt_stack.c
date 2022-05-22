@@ -17,6 +17,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
+
 // TODO: Decide if this is useless or not, since we don't really have the commpage feature!
 #if defined(GEN_64BIT)
 #define FUNCTION_NAME setup_stack64
@@ -42,7 +43,7 @@ int FUNCTION_NAME(struct linux_binprm* bprm, struct load_results* lr)
 	char* env_value = NULL;
 	unsigned char k_rand_bytes[16];
 
-	// printk(KERN_NOTICE "Stack top: %p\n", bprm->p);
+	printk(KERN_NOTICE "Stack top: %p\n", bprm->p);
 	sp = (macho_addr_t*) (bprm->p & ~(sizeof(macho_addr_t)-1));
 	sp -= bprm->argc + bprm->envc + 6;
 
@@ -54,17 +55,6 @@ int FUNCTION_NAME(struct linux_binprm* bprm, struct load_results* lr)
 
 	bprm->p = (unsigned long) sp;
 
-	// XXX: skip this for static executables, but we don't support them anyway...
-	if (__put_user((macho_addr_t) lr->mh, sp++))
-	{
-		err = -EFAULT;
-		goto out;
-	}
-	if (__put_user((macho_addr_t) bprm->argc, sp++))
-	{
-		err = -EFAULT;
-		goto out;
-	}
 
 	unsigned long p = current->mm->arg_start;
 	int argc = bprm->argc;

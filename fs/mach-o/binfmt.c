@@ -61,7 +61,7 @@
 
 struct load_results
 {
-	unsigned long mh;
+	unsigned long mh; // Mach header
 	unsigned long entry_point;
 	unsigned long stack_size;
 	unsigned long dyld_all_image_location;
@@ -77,15 +77,15 @@ struct load_results
 };
 
 static int macho_load(struct linux_binprm* bprm);
-//static int macho_coredump(struct coredump_params* cprm);
+static int macho_coredump(struct coredump_params* cprm);
 static int test_load(struct linux_binprm* bprm);
 static int test_load_fat(struct linux_binprm* bprm);
 static int load_fat(struct linux_binprm* bprm, struct file* file, uint32_t arch, struct load_results* lr);
-static int load32(struct linux_binprm* bprm, struct file* file, struct fat_arch* farch, bool expect_dylinker, struct load_results* lr);
 static int load64(struct linux_binprm* bprm, struct file* file, struct fat_arch* farch, bool expect_dylinker, struct load_results* lr);
 static int load(struct linux_binprm* bprm, struct file* file, uint32_t arch, struct load_results* lr);
 static int native_prot(int prot);
 static int setup_stack64(struct linux_binprm* bprm, struct load_results* lr);
+static void process_special_env(struct linux_binprm* bprm, struct load_results* lr);
 
 // #define PAGE_ALIGN(x) ((x) & ~(PAGE_SIZE-1))
 #define PAGE_ROUNDUP(x) (((((x)-1) / PAGE_SIZE)+1) * PAGE_SIZE)
@@ -102,14 +102,14 @@ struct linux_binfmt macho_format = {
 
 static int __init macho_binfmt_init(void)
 {
-    debug_msg("File format support loaded! At your order chief!.\n");
+    mch_print_debug("File format support loaded! At your order chief!.\n");
 	register_binfmt(&macho_format);
     return 0;
 }
 
 static void __exit macho_binfmt_exit(void)
 {
-    debug_msg("Exiting, unless you're shutting down, this isn't a good signal!\n");
+    mch_print_debug("Exiting, unless you're shutting down, this isn't a good signal!\n");
 	unregister_binfmt(&macho_format);
 }
 
@@ -147,7 +147,7 @@ int macho_load(struct linux_binprm* bprm)
 
 	if (err)
 	{
-		debug_msg("Binary failed to load: %d\n", err);
+		mch_print_debug("Binary failed to load: %d\n", err);
 		goto out;
 	}
 
@@ -173,7 +173,7 @@ int macho_load(struct linux_binprm* bprm)
 
 	if (err != 0)
 	{
-		debug_msg("Failed to install commpage: %d\n", err);
+		mch_print_debug("Failed to install commpage: %d\n", err);
 		send_sig(SIGKILL, current, 0);
 		return err;
 	}
@@ -181,12 +181,14 @@ int macho_load(struct linux_binprm* bprm)
 	//err = setup_stack64(bprm, &lr);
 	//if (err != 0)
 	//{
-	//	debug_msg("What the fuck?");
+	//	mch_print_debug("What the fuck?");
 	//	return err;
 	//}
 
 	// setup the stack
 	setup_stack64(bprm, &lr);
+
+	mch_print_debug("Entry point: %lx, stack %lx, mh: %lx\n", (void*)lr.entry_point, (void*) bprm->p, (void*) lr.mh);
 	
 	//finalize_exec(bprm);
 	start_thread(regs, lr.entry_point, bprm->p);
@@ -213,15 +215,6 @@ int load(struct linux_binprm* bprm,
 			return -ENOEXEC;
 
 		return load64(bprm, file, NULL, arch != 0, lr);
-	}
-	else if (magic == MH_MAGIC || magic == MH_CIGAM)
-	{
-		// Make sure the loader has the right cputype
-		if (arch && ((struct mach_header*) bprm->buf)->cputype != arch)
-			return -ENOEXEC;
-
-		// TODO: make process 32-bit
-		return load32(bprm, file, NULL, arch != 0, lr);
 	}
 	else if (magic == FAT_MAGIC || magic == FAT_CIGAM)
 	{
@@ -321,6 +314,64 @@ int test_load_fat(struct linux_binprm* bprm)
 	return 0;
 }
 
+int setup_space(struct linux_binprm* bprm, struct load_results* lr)
+{
+	int err;
+
+	// This is wrong but so is 60% of psychology yet people assume is an axiom
+	unsigned long stack_addr = 0x00007fffffe00000ULL;
+
+	setup_new_exec(bprm);
+
+	err = setup_arg_pages(bprm, stack_addr, EXSTACK_DISABLE_X);
+	if (err != 0){
+		return err;
+	}
+
+	process_special_env(bprm, lr);
+
+	mch_print_debug("Arg pages are setup!");
+	return 0;
+}
+
+void process_special_env(struct linux_binprm* bprm, struct load_results *lr)
+{
+	unsigned long p = current->mm->arg_start;
+
+	int argc = bprm->argc;
+	while(argc--){
+		size_t len = strnlen_user((void __user*)p, MAX_ARG_STRLEN);
+		if (!len || len > MAX_ARG_STRLEN)
+			return;
+		p += len;
+	}
+
+	int envc = bprm->envc;
+	char *env_value = (char*) kmalloc(MAX_ARG_STRLEN, GFP_KERNEL);
+
+	while(envc--){
+		size_t len = strnlen_user((void __user*)p, MAX_ARG_STRLEN);
+		if (!len || len > MAX_ARG_STRLEN)
+			break;
+		if (copy_from_user(env_value, (void __user*)p, len) == 0) {
+			printk(KERN_NOTICE "env var: %s\n", env_value);
+			if (strncmp(env_value, "__mldr_bprefs=", 14) == 0){
+				sscanf(env_value+14, "%x,%x,%x,%x", &lr->bprefs[0], &lr->bprefs[1], &lr->bprefs[2], &lr->bprefs[3]);
+			} else if (strncmp(env_value, "DYLD_ROOT_PATH=", 15) == 0) {
+				if (lr->root_path == NULL) {
+					lr->root_path = (char*) kmalloc(len - 15, GFP_KERNEL);
+					if (lr->root_path)
+						strcpy(lr->root_path, env_value + 15);
+				}
+			}
+		} else {
+			printk(KERN_NOTICE "Cannot get env var value!\n");
+		}
+		p += len;
+	}
+	kfree(env_value);
+}
+
 int load_fat(struct linux_binprm* bprm,
 		struct file* file,
 		uint32_t forced_arch,
@@ -397,21 +448,13 @@ int load_fat(struct linux_binprm* bprm,
 	if (best_arch == NULL)
 		return -ENOEXEC;
 
-	if (best_arch->cputype & CPU_ARCH_ABI64)
 		return load64(bprm, file, best_arch, forced_arch != 0, lr);
-	else
-		return load32(bprm, file, best_arch, forced_arch != 0, lr);
 }
 
 #define GEN_64BIT
 #include "binfmt_loader.c"
 #include "binfmt_stack.c"
 #undef GEN_64BIT
-
-#define GEN_32BIT
-#include "binfmt_loader.c"
-#include "binfmt_stack.c"
-#undef GEN_32BIT
 
 int native_prot(int prot)
 {
@@ -529,13 +572,6 @@ void fill_thread_state64(x86_thread_state64_t* state, struct task_struct* task)
 	state->rflags = regs->flags;
 	state->cs = regs->cs;
 	state->rip = regs->ip;
-}
-
-static
-void fill_float_state64(x86_float_state64_t* state, struct task_struct* task)
-{
-	// TODO
-	memset(state, 0, sizeof(*state));
 }
 
 static
@@ -675,7 +711,7 @@ bool macho_dump_headers64(struct coredump_params* cprm)
 	mh.filetype = MH_CORE;
 	mh.ncmds = segs + threads;
 
-	debug_msg("CORE: threads: %d\n", threads);
+	mch_print_debug("CORE: threads: %d\n", threads);
 
 	const int statesize = sizeof(x86_thread_state32_t) + sizeof(x86_float_state64_t) + sizeof(struct thread_flavor)*2;
 	mh.sizeofcmds = segs * sizeof(struct segment_command_64) + threads * (sizeof(struct thread_command) + statesize);
@@ -742,8 +778,6 @@ bool macho_dump_headers64(struct coredump_params* cprm)
 		tf = (struct thread_flavor*) (tf->state + sizeof(x86_thread_state64_t));
 		tf->flavor = x86_FLOAT_STATE64;
 		tf->count = x86_FLOAT_STATE64_COUNT;
-
-		fill_float_state64((x86_float_state64_t*) tf->state, ct->task);
 
 		if (!dump_emit(cprm, buffer, memsize))
 		{
