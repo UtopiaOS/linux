@@ -20,9 +20,9 @@ extract_package() {
     pushd $input_directory
         string file_extension=$(echo $package | awk -F'[.]' '{print $NF}')
         if [ "$file_extension" == "xz" ]; then
-            xz -cd "$input_directory/$package" | tar -xvf -
+            xz -cd "$input_directory/$package" | tar -xvf - --strip=1 -C $output_directory
         elif [ "$file_extension" == "gz" ]; then
-            gzip -cd "$input_directory/$package" | tar -xvf -
+            gzip -cd "$input_directory/$package" | tar -xvf - --strip=1 -C $output_directory
         else
             subject=error Log "File extension unkown, possibly corrupt file"
             exit 1
