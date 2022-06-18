@@ -1,0 +1,3 @@
+[submodule "framework_bash"]
+	path = framework_bash
+	url = https://github.com/niieani/bash-oo-framework
