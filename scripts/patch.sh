@@ -43,4 +43,7 @@ do
     fi
 done
 
+patch -Np0 < "$PARENT/patches/0001-fs-makefile.patch"
+patch -Np0 < "$PARENT/patches/0002-kconfig.patch"
+
 touch "$PARENT/src/UTOPIA_KERNEL"
