@@ -27,6 +27,9 @@ if [ -e "$PARENT/src" ]; then
     if [ $version == "$LINUX_VERSION" ]; then
         echo "Current version is the same as the one in the config, skipping import"
         exit 0
+    else
+        Log "Creating src directory"
+        mkdir "$PARENT/src"
     fi
 fi
 
@@ -42,10 +45,3 @@ string temp_download_dir=$(mktemp -d /tmp/utopia-linux.XXXXXXXX)
 
 download_package $temp_download_dir $LINUX_PKG $LINUX_SHA256SUM $LINUX_URL $LINUX_NAME
 extract_package $temp_download_dir "$PARENT/src" $LINUX_PKG
-
-if [ ! -e "$PARENT/src" ]; then
-    Log "Creating src directory"
-    mkdir "$PARENT/src"
-fi
-
-
