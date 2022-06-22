@@ -25,7 +25,7 @@ string LINUX_SHA256SUM=$(cat $CONFIG | jq -r ".shasum")
 if [ -e "$PARENT/src" ]; then
     string version=$(check_version "$PARENT/src")
     if [ $version == "$LINUX_VERSION" ]; then
-        echo "Current version is the same as the one in the config, skipping import"
+        echo "$(UI.Color.Yellow)Current version is the same as the one in the config, skipping import$(UI.Color.Default)"
         exit 0
     else
         Log "Creating src directory"
@@ -45,3 +45,5 @@ string temp_download_dir=$(mktemp -d /tmp/utopia-linux.XXXXXXXX)
 
 download_package $temp_download_dir $LINUX_PKG $LINUX_SHA256SUM $LINUX_URL $LINUX_NAME
 extract_package $temp_download_dir "$PARENT/src" $LINUX_PKG
+
+echo "$(UI.Color.Green)Source imported. Run $DIR/patch.sh to apply patches"
