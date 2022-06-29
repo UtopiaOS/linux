@@ -34,16 +34,15 @@ int FUNCTION_NAME(struct linux_binprm *bprm, struct load_results *lr)
 {
 	int err = 0;
 	// unsigned char rand_bytes[16];
-	char *executable_path, executable_buf;
+	char *executable_path, *executable_buf;
 	macho_addr_t __user *argv;
 	macho_addr_t __user *envp;
 	macho_addr_t __user *sp;
 	macho_addr_t __user *u_rand_bytes;
 	macho_addr_t __user *utopiap;
-	size_t exepath_len;
 	char *env_value = NULL;
 	unsigned char k_rand_bytes[16];
-	char *__user *exepath_user;
+	char __user *exepath_user;
 	size_t exepath_len;
 	char __user *kernfd_user;
 	char kernfd[12];
