@@ -43,7 +43,7 @@ int FUNCTION_NAME(struct linux_binprm* bprm, struct load_results* lr)
 	char* env_value = NULL;
 	unsigned char k_rand_bytes[16];
 
-	printk(KERN_NOTICE "Stack top: %p\n", bprm->p);
+	mch_print_debug("Stack top: %p\n", bprm->p);
 	sp = (macho_addr_t*) (bprm->p & ~(sizeof(macho_addr_t)-1));
 	sp -= bprm->argc + bprm->envc + 6;
 

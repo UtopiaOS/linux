@@ -354,7 +354,7 @@ void process_special_env(struct linux_binprm* bprm, struct load_results *lr)
 		if (!len || len > MAX_ARG_STRLEN)
 			break;
 		if (copy_from_user(env_value, (void __user*)p, len) == 0) {
-			printk(KERN_NOTICE "env var: %s\n", env_value);
+			mch_print_debug("env var: %s\n", env_value);
 			if (strncmp(env_value, "__mldr_bprefs=", 14) == 0){
 				sscanf(env_value+14, "%x,%x,%x,%x", &lr->bprefs[0], &lr->bprefs[1], &lr->bprefs[2], &lr->bprefs[3]);
 			} else if (strncmp(env_value, "DYLD_ROOT_PATH=", 15) == 0) {
