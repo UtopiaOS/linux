@@ -34,7 +34,7 @@ int FUNCTION_NAME(struct linux_binprm *bprm, struct load_results *lr)
 {
 	int err = 0;
 	// unsigned char rand_bytes[16];
-	char *executable_path;
+	char *executable_path, executable_buf;
 	macho_addr_t __user *argv;
 	macho_addr_t __user *envp;
 	macho_addr_t __user *sp;
@@ -49,6 +49,8 @@ int FUNCTION_NAME(struct linux_binprm *bprm, struct load_results *lr)
 	char kernfd[12];
 	char __user *utopia_pointer_contents[3];
 
+	executable_buf = kmalloc(4096, GFP_KERNEL);
+
 	executable_path = d_path(&bprm->file->f_path, executable_buf, 4095);
 	if (IS_ERR(executable_path))
 	{
@@ -56,11 +58,11 @@ int FUNCTION_NAME(struct linux_binprm *bprm, struct load_results *lr)
 		goto out;
 	}
 
-	exepath_len = strlen(executable_path);
+	exepath_len = strlen(executable_buf);
 	mch_print_debug("Stack top: %p\n", bprm->p);
 	sp = (macho_addr_t *)(bprm->p & ~(sizeof(macho_addr_t) - 1));
 	sp -= bprm->argc + bprm->envc + 6;
-	exepath_user = (char __user *)bprm->p 
+	exepath_user = (char __user *)bprm->p - exepath_len - sizeof(EXECUTABLE_PATH);
 	
 	if (!find_extend_vma(current->mm, (unsigned long)sp))
 	{
@@ -83,7 +85,7 @@ int FUNCTION_NAME(struct linux_binprm *bprm, struct load_results *lr)
 		goto out;
 	}
 
-	if (copy_to_user(exepath_user + sizeof(EXECUTABLE_PATH) - 1, executable_path, exepath_len + 1))
+	if (copy_to_user(exepath_user + sizeof(EXECUTABLE_PATH) - 1, executable_buf, exepath_len + 1))
 	{
 		err = -EFAULT;
 		goto out;
