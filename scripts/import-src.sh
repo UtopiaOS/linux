@@ -31,6 +31,9 @@ if [ -e "$PARENT/src" ]; then
         Log "Creating src directory"
         mkdir "$PARENT/src"
     fi
+else
+    Log "Creating src directory"
+    mkdir "$PARENT/src"
 fi
 
 
