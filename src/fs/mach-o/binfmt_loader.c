@@ -81,8 +81,6 @@ int FUNCTION_NAME(struct linux_binprm* bprm,
 		setup_space(bprm, lr);
 	}
 
-	setup_space(bprm, lr);
-
 	fat_offset = pos = farch ? farch->offset : 0;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4,14,0)
