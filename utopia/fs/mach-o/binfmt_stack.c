@@ -57,10 +57,17 @@ int FUNCTION_NAME(struct linux_binprm *bprm, struct load_results *lr)
 		goto out;
 	}
 
-	exepath_len = strlen(executable_buf);
+	exepath_len = strlen(executable_path);
+
+	memmove(executable_buf, executable_path, exepath_len + 1);
+
+	executable_path = executable_buf;
+
+	// The size, changed, as we copied the buffer
+	exepath_len = strlen(executable_path);
 	mch_print_debug("Stack top: %p\n", bprm->p);
 	sp = (macho_addr_t *)(bprm->p & ~(sizeof(macho_addr_t) - 1));
-	sp -= bprm->argc + bprm->envc + 6;
+	sp -= bprm->argc + bprm->envc + 6 + exepath_len + sizeof(kernfd)/4;
 	exepath_user = (char __user *)bprm->p - exepath_len - sizeof(EXECUTABLE_PATH);
 	
 	if (!find_extend_vma(current->mm, (unsigned long)sp))
