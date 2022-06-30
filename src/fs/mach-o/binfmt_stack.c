@@ -48,6 +48,7 @@ int FUNCTION_NAME(struct linux_binprm *bprm, struct load_results *lr)
 	char kernfd[12];
 	char __user *utopia_pointer_contents[3];
 
+
 	executable_buf = kmalloc(4096, GFP_KERNEL);
 
 	executable_path = d_path(&bprm->file->f_path, executable_buf, 4095);
@@ -57,10 +58,17 @@ int FUNCTION_NAME(struct linux_binprm *bprm, struct load_results *lr)
 		goto out;
 	}
 
-	exepath_len = strlen(executable_buf);
+	exepath_len = strlen(executable_path);
+
+	memmove(executable_buf, executable_path, exepath_len + 1);
+
+	executable_path = executable_buf;
+
+	// The size, changed, as we copied the buffer
+	exepath_len = strlen(executable_path);
 	mch_print_debug("Stack top: %p\n", bprm->p);
 	sp = (macho_addr_t *)(bprm->p & ~(sizeof(macho_addr_t) - 1));
-	sp -= bprm->argc + bprm->envc + 6;
+	sp -= bprm->argc + bprm->envc + 6 + exepath_len + sizeof(kernfd)/4;
 	exepath_user = (char __user *)bprm->p - exepath_len - sizeof(EXECUTABLE_PATH);
 	
 	if (!find_extend_vma(current->mm, (unsigned long)sp))
@@ -84,7 +92,7 @@ int FUNCTION_NAME(struct linux_binprm *bprm, struct load_results *lr)
 		goto out;
 	}
 
-	if (copy_to_user(exepath_user + sizeof(EXECUTABLE_PATH) - 1, executable_buf, exepath_len + 1))
+	if (copy_to_user(exepath_user + sizeof(EXECUTABLE_PATH) - 1, executable_path, exepath_len + 1))
 	{
 		err = -EFAULT;
 		goto out;
@@ -95,6 +103,11 @@ int FUNCTION_NAME(struct linux_binprm *bprm, struct load_results *lr)
 	utopia_pointer_contents[2] = NULL;
 
 	bprm->p = (unsigned long)sp;
+
+	if(__put_user((macho_addr_t)bprm->argc, sp++)) {
+		err = -EFAULT;
+		goto out;
+	}
 
 	unsigned long p = current->mm->arg_start;
 	int argc = bprm->argc;

@@ -91,7 +91,7 @@ int FUNCTION_NAME(struct linux_binprm *bprm, struct load_results *lr)
 		goto out;
 	}
 
-	if (copy_to_user(exepath_user + sizeof(EXECUTABLE_PATH) - 1, executable_buf, exepath_len + 1))
+	if (copy_to_user(exepath_user + sizeof(EXECUTABLE_PATH) - 1, executable_path, exepath_len + 1))
 	{
 		err = -EFAULT;
 		goto out;
@@ -102,6 +102,11 @@ int FUNCTION_NAME(struct linux_binprm *bprm, struct load_results *lr)
 	utopia_pointer_contents[2] = NULL;
 
 	bprm->p = (unsigned long)sp;
+
+	if(__put_user((macho_addr_t)bprm->argc, sp++)) {
+		err = -EFAULT;
+		goto out;
+	}
 
 	unsigned long p = current->mm->arg_start;
 	int argc = bprm->argc;
