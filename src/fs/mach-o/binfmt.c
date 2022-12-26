@@ -52,6 +52,7 @@
 #include <linux/sched/task_stack.h>
 #endif
 #include "debug.h"
+#include <utopia/thread_status.h>
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,11,0)
 #	define check_64bit_mode(regs) !test_thread_flag(TIF_IA32)
