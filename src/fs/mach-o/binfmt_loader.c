@@ -125,8 +125,8 @@ int FUNCTION_NAME(struct linux_binprm* bprm,
 				if (base == -1)
 				{
 					base = seg->vmaddr;
-					if (base != 0 && header.filetype == MH_DYLINKER)
-						goto no_slide;
+					//if (base != 0 && header.filetype == MH_DYLINKER)
+					//	goto no_slide;
 				}
 				mmapSize = seg->vmaddr + seg->vmsize - base;
 			}
