@@ -104,6 +104,12 @@ int FUNCTION_NAME(struct linux_binprm *bprm, struct load_results *lr)
 
 	bprm->p = (unsigned long)sp;
 
+	// Copy the Mach-O header to the userland
+	if (__put_user((macho_addr_t)lr->mh, sp++)) {
+		err = -EFAULT;
+		goto out;
+	}
+
 	if(__put_user((macho_addr_t)bprm->argc, sp++)) {
 		err = -EFAULT;
 		goto out;

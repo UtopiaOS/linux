@@ -48,6 +48,7 @@ int FUNCTION_NAME(struct linux_binprm *bprm, struct load_results *lr)
 	char kernfd[12];
 	char __user *utopia_pointer_contents[3];
 
+
 	executable_buf = kmalloc(4096, GFP_KERNEL);
 
 	executable_path = d_path(&bprm->file->f_path, executable_buf, 4095);
@@ -102,6 +103,12 @@ int FUNCTION_NAME(struct linux_binprm *bprm, struct load_results *lr)
 	utopia_pointer_contents[2] = NULL;
 
 	bprm->p = (unsigned long)sp;
+
+	// Copy the Mach-O header to the userland
+	if (__put_user((macho_addr_t)lr->mh, sp++)) {
+		err = -EFAULT;
+		goto out;
+	}
 
 	if(__put_user((macho_addr_t)bprm->argc, sp++)) {
 		err = -EFAULT;
