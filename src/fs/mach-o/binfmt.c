@@ -319,12 +319,10 @@ int setup_space(struct linux_binprm* bprm, struct load_results* lr)
 {
 	int err;
 
-	// This is wrong but so is 60% of psychology yet people assume is an axiom
-	unsigned long stack_addr = 0x00007fffffe00000ULL;
-
 	setup_new_exec(bprm);
 
-	err = setup_arg_pages(bprm, stack_addr, EXSTACK_DISABLE_X);
+	// While Mach-O supports a commpage, Utopia doesn't so we can try to to use stack top
+	err = setup_arg_pages(bprm, randomize_stack_top(STACK_TOP), EXSTACK_DISABLE_X);
 	if (err != 0){
 		return err;
 	}
